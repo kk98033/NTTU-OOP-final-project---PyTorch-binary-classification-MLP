@@ -1,3 +1,4 @@
+import numpy
 from numpy import vstack
 from pandas import read_csv
 import pandas as pd
@@ -18,10 +19,21 @@ from torch.nn.init import xavier_uniform_
 import time
 import copy
 
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 dataURL = 'https://raw.githubusercontent.com/StatsGary/Data/main/thyroid_raw.csv'
 
 
-df = pd.read_csv(dataURL)   
-df.head()
+df = pd.read_csv(dataURL, header=None)   
+# df.head()
+# print(df)
+x = df.values[:, :-1]
+x = x.astype('float32')
+
+y = df.values[:, -1]
+y = numpy.array([1 if i == 'sick' else 0 for i in y])
+y = y.astype('float32')
+y = y.reshape((len(y), 1))
+print(x)
+print(y)
