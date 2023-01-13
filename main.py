@@ -83,24 +83,27 @@ class ThyroidMLP(Module):
 
         return x
 
-def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.8, savedPath='model.pth'):
+def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='model.pth'):
     '''
     trainDL            – dataloader
     epochs             – how many times do we want to feed through and back propagate errors (this is an optional parameter as the default is set to 100)
     lr (learning rate) – at what rate the model learns at – too high a value and it misses key updates, too low and it can take forever. This is where the art comes into Machine Learning.
     save_path          – this will be the serialised PyTorch (.pth) file format. All PyTorch models are saved with this postfix.
     momentum           – is used to speed up training
+
+    https://stackoverflow.com/questions/63106109/how-to-display-graphs-of-loss-and-accuracy-on-pytorch-using-matplotlib
     '''
     start = time.time()
     criterion = BCELoss() # loss function # TODO: use different loss function
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum) # TODO: use different optimizer
     loss = 0.0
-    lossList = numpy.array([])
+    lossList = []
 
     for epoch in range(epochs):
         print(f'Epoch { epoch+1 }/{ epochs }')
         model.train()
 
+        epochLoss = []
         # iterate training data loader
         for i, (inputs, targets) in enumerate(trainDL):
             optimizer.zero_grad() # set to zero gradients
@@ -109,6 +112,8 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.8, savedPath='mod
             loss = criterion(outputs, targets)
             loss.backward() # set the loss to back propagate through the network updating the weights as it goes
             optimizer.step()
+
+            epochLoss.append(loss.item())
         # torch.save(model, savedPath)
         torch.save({
             'epoch': epoch,
@@ -117,14 +122,14 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.8, savedPath='mod
             'loss': criterion,
         }, savedPath)
 
-        lossList = numpy.append(lossList, loss.detach().numpy())
+        lossList.append(sum(epochLoss) / len(epochLoss))
 
         # TODO: save best data and draw
 
     timeDelta = time.time() - start
     print(f'Trainging complete in { timeDelta // 60 }, { timeDelta % 60 }s')
 
-    # savePlots(lossList)
+    savePlots(lossList)
 
     return model
 
@@ -218,7 +223,7 @@ trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Da
 
 # train the model
 model = ThyroidMLP(26)
-trainModel(trainDL=trainDL, model=model, epochs=1000, lr=0.01)
+trainModel(trainDL=trainDL, model=model, epochs=2000, lr=0.01)
 
 results = evaluateModel(testDL, model, beta=1)
 
