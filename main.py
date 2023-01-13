@@ -88,9 +88,16 @@ class ThyroidMLP(Module):
         return x
 
 def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='model.pth'):
+    '''
+    trainDL            – dataloader
+    epochs             – how many times do we want to feed through and back propagate errors (this is an optional parameter as the default is set to 100)
+    lr (learning rate) – at what rate the model learns at – too high a value and it misses key updates, too low and it can take forever. This is where the art comes into Machine Learning.
+    save_path          – this will be the serialised PyTorch (.pth) file format. All PyTorch models are saved with this postfix.
+    momentum           – is used to speed up training
+    '''
     start = time.time()
-    criterion = BCELoss()
-    optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+    criterion = BCELoss() # loss function # TODO: use different loss function
+    optimizer = SGD(model.parameters(), lr=lr, momentum=momentum) # TODO: use different optimizer
     loss = 0.0
 
     for epoch in range(epochs):
@@ -101,11 +108,12 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
         for i, (inputs, targets) in enumerate(trainDL):
             optimizer.zero_grad() # set to zero gradients
             outputs = model(inputs)
-            temp, preds = torch.max(outputs.data, 1) # get class labels
+            _, preds = torch.max(outputs.data, 1) # get class labels
             loss = criterion(outputs, targets)
             loss.backward() # set the loss to back propagate through the network updating the weights as it goes
             optimizer.step()
         torch.save(model, savedPath)
+        # TODO: save best data and draw
 
     timeDelta = time.time() - start
     print(f'Trainging complete in { timeDelta // 60 }, { timeDelta % 60 }s')
@@ -127,10 +135,16 @@ def evaluateModel(testDL, model, beta=1.0):
 
         preds.append(yhat)
         actuals.append(actual)
-    
-    # TODO: confusion matrix
+
     preds, actuals = vstack(preds), vstack(actuals)
+    cm = numpy.zeros((2, 2))
+    for i in range(len(preds)):
+        cm[int(actuals[i][0]), int(preds[i][0])] += 1
+    print(f'1: {cm}')
     cm = confusion_matrix(actuals, preds)
+    accuracy = cm.diagonal().sum() / len(preds)
+    print(accuracy)
+    print(cm)
     tn, fp, fn, tp = cm.ravel()
     total = sum(cm.ravel())
 
@@ -167,7 +181,7 @@ def predict(row, model):
 
 def prepareDataset(path):
     dataset = ThryoidCSVDataset(path)
-    train, test = dataset.splitData(ratio=0.1)
+    train, test = dataset.splitData(ratio=0.3)
 
     # data loaders
     trainDL = DataLoader(train, batch_size=32, shuffle=True)
@@ -179,10 +193,14 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Data/main/thyroid_raw.csv')
 model = ThyroidMLP(26)
-trainModel(trainDL=trainDL, model=model, epochs=150, lr=0.01)
+trainModel(trainDL=trainDL, model=model, epochs=100, lr=0.01)
 
 results = evaluateModel(testDL, model, beta=1)
 modelMetrics = results[0]
 metricsDF = pd.DataFrame.from_dict(modelMetrics, orient='index', columns=['metric'])
 metricsDF.reset_index(inplace=True)
 metricsDF.to_csv('confusion_matrix_thyroid.csv', index=False)
+
+row = [0.8408678952719717,0.7480132415430958,-0.3366221139379705,-0.0938130059640389,-0.1101874782051067,-0.2098160394213988,-0.1260114177378201,-0.1118651062104989,-0.1274917875477927,-0.240146053214037,-0.2574472174396955,-0.0715198539852151,-0.0855764265990022,-0.1493202733578882,-0.0190692517849118,-0.2590488060984638,0.0,-0.1753175780014474,0.0,-0.9782211033008232,0.0,-1.3237957945784953,0.0,-0.6384998731458282,0.0,-1.209042232192488]
+yhat = predict(row, model)
+print(f'Predicted: { yhat } (class={ yhat.round(3) })')
