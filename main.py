@@ -196,7 +196,7 @@ trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Da
 
 # train the model
 model = ThyroidMLP(26)
-trainModel(trainDL=trainDL, model=model, epochs=1050, lr=0.01)
+trainModel(trainDL=trainDL, model=model, epochs=150, lr=0.01)
 
 results = evaluateModel(testDL, model, beta=1)
 # write metrics to a csv
