@@ -1,0 +1,13 @@
+index,metric
+accuracy,0.6187012987012988
+false_positive_rate_FPR,0.2398884239888424
+false_discovery_rate,0.7730337078651686
+false_negative_rate,0.7942973523421588
+negative_predictive_value,0.7364864864864865
+misclassification_error_rate,0.3812987012987013
+sensitivity,0.20570264765784113
+specificity,0.7601115760111576
+TP,101.0
+FP,344.0
+FN,390.0
+TN,1090.0

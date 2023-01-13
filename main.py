@@ -21,9 +21,9 @@ import copy
 import math
 
 ''' temp '''
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, average_precision_score
-from sklearn.metrics import confusion_matrix, recall_score, f1_score
+# from sklearn.preprocessing import LabelEncoder
+# from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, average_precision_score
+# from sklearn.metrics import confusion_matrix, recall_score, f1_score
 
 class ThryoidCSVDataset(Dataset):
     def __init__(self, dataURL) -> None:
@@ -137,27 +137,25 @@ def evaluateModel(testDL, model, beta=1.0):
         actuals.append(actual)
 
     preds, actuals = vstack(preds), vstack(actuals)
-    cm = numpy.zeros((2, 2))
+    cm = numpy.zeros((2, 2)) # define confusion matrix
     for i in range(len(preds)):
         cm[int(actuals[i][0]), int(preds[i][0])] += 1
-    print(f'1: {cm}')
-    cm = confusion_matrix(actuals, preds)
     accuracy = cm.diagonal().sum() / len(preds)
-    print(accuracy)
-    print(cm)
-    tn, fp, fn, tp = cm.ravel()
+    print(f'Accuracy: {accuracy}')
+    print(f'Confusion matrix: {cm}')
+    tn, fp, fn, tp = cm.ravel() # cm.ravel() - Return a contiguous flattened array.
     total = sum(cm.ravel())
 
     metrics = {
-        'accuracy': accuracy_score(actuals, preds),
-        'AU_ROC': roc_auc_score(actuals, preds),
-        'f1_score': f1_score(actuals, preds),
-        'average_precision_score': average_precision_score(actuals, preds),
-        'f_beta': ((1+beta**2) * precision_score(actuals, preds) * recall_score(actuals, preds)) / (beta**2 * precision_score(actuals, preds) + recall_score(actuals, preds)),
-        'matthews_correlation_coefficient': (tp*tn - fp*fn) / math.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn)),
-        'precision': precision_score(actuals, preds),
-        'recall': recall_score(actuals, preds),
-        'true_positive_rate_TPR':recall_score(actuals, preds),
+        'accuracy': accuracy,
+        # 'AU_ROC': roc_auc_score(actuals, preds),
+        # 'f1_score': f1_score(actuals, preds),
+        # 'average_precision_score': average_precision_score(actuals, preds),
+        # 'f_beta': ((1+beta**2) * precision_score(actuals, preds) * recall_score(actuals, preds)) / (beta**2 * precision_score(actuals, preds) + recall_score(actuals, preds)),
+        # 'matthews_correlation_coefficient': (tp*tn - fp*fn) / math.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn)),
+        # 'precision': precision_score(actuals, preds),
+        # 'recall': recall_score(actuals, preds),
+        # 'true_positive_rate_TPR':recall_score(actuals, preds),
         'false_positive_rate_FPR':fp / (fp + tn) ,
         'false_discovery_rate': fp / (fp +tp),
         'false_negative_rate': fn / (fn + tp) ,
@@ -174,9 +172,12 @@ def evaluateModel(testDL, model, beta=1.0):
     return metrics, preds, actuals
 
 def predict(row, model):
+    '''
+    return a prediction for each input passed into the model
+    '''
     row = Tensor([row])
     yhat = model(row)
-    yhat = yhat.detach().numpy() # get numpy array
+    yhat = yhat.detach().numpy()
     return yhat   
 
 def prepareDataset(path):
@@ -191,16 +192,25 @@ def prepareDataset(path):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Data/main/thyroid_raw.csv')
+trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Data/main/thyroid_raw.csv') # load data
+
+# train the model
 model = ThyroidMLP(26)
-trainModel(trainDL=trainDL, model=model, epochs=100, lr=0.01)
+trainModel(trainDL=trainDL, model=model, epochs=1050, lr=0.01)
 
 results = evaluateModel(testDL, model, beta=1)
+# write metrics to a csv
 modelMetrics = results[0]
 metricsDF = pd.DataFrame.from_dict(modelMetrics, orient='index', columns=['metric'])
 metricsDF.reset_index(inplace=True)
 metricsDF.to_csv('confusion_matrix_thyroid.csv', index=False)
 
+# prediction
 row = [0.8408678952719717,0.7480132415430958,-0.3366221139379705,-0.0938130059640389,-0.1101874782051067,-0.2098160394213988,-0.1260114177378201,-0.1118651062104989,-0.1274917875477927,-0.240146053214037,-0.2574472174396955,-0.0715198539852151,-0.0855764265990022,-0.1493202733578882,-0.0190692517849118,-0.2590488060984638,0.0,-0.1753175780014474,0.0,-0.9782211033008232,0.0,-1.3237957945784953,0.0,-0.6384998731458282,0.0,-1.209042232192488]
 yhat = predict(row, model)
-print(f'Predicted: { yhat } (class={ yhat.round(3) })')
+print(yhat)
+print(f'Predicted: { yhat.round(3) } (class={ int(yhat.round()) })')
+row = [1.2339564002880206,0.7480132415430958,-0.3366221139379705,-0.0938130059640389,-0.1101874782051067,-0.2098160394213988,-0.1260114177378201,-0.1118651062104989,-0.1274917875477927,-0.240146053214037,-0.2574472174396955,-0.0715198539852151,-0.0855764265990022,-0.1493202733578882,-0.0190692517849118,-0.2590488060984638,0.0,-0.1840637959031139,0.0,-0.1257019695838398,0.0,-0.7603760324639954,0.0,-0.8422102564436934,0.0,-0.3546744383145823]
+yhat = predict(row, model)
+print(yhat)
+print(f'Predicted: { yhat.round(3) } (class={ int(yhat.round()) })')

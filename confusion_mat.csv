@@ -1,0 +1,13 @@
+metric_type,metric
+accuracy,1.0
+false_positive_rate_FPR,0.0
+false_discovery_rate,
+false_negative_rate,
+negative_predictive_value,1.0
+misclassification_error_rate,0.0
+sensitivity,
+specificity,1.0
+TP,0.0
+FP,0.0
+FN,0.0
+TN,246.0
