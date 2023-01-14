@@ -124,7 +124,7 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
             'loss': criterion,
         }, savedPath)
 
-        # store best model
+        # store the best model
         if epoch % 10 == 0:
             yhat = model(inputs) # evaluate the model on the test set
             yhat = yhat.detach().numpy()
@@ -146,7 +146,6 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
                 bestModel = copy.deepcopy(model)
                 bestVal = accuracy
 
-                # torch.save(model, savedPath)
                 # save the best model
                 torch.save({
                     'epoch': epoch,
