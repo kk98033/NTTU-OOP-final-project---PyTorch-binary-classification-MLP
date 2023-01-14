@@ -20,6 +20,7 @@ import time
 import copy
 import math
 import matplotlib.pyplot as plt
+import os
 
 class ThryoidCSVDataset(Dataset):
     def __init__(self, dataURL) -> None:
@@ -161,12 +162,14 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
 
     savePlots(lossList)
 
-    return model
+    return bestModel
 
 def savePlots(trainLoss):
     """
     Function to save the loss and accuracy plots to disk.
     """
+    os.makedirs('outputs/', exist_ok=True) # create folder if not exist
+
     # print(trainLoss)
     plt.figure(figsize=(10, 7))
     plt.plot(
