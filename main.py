@@ -103,6 +103,8 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
         print(f'Epoch { epoch+1 }/{ epochs }')
         model.train()
 
+        bestVal = 0
+
         epochLoss = []
         # iterate training data loader
         for i, (inputs, targets) in enumerate(trainDL):
@@ -122,9 +124,38 @@ def trainModel(trainDL, model, epochs=100, lr=0.01, momentum=0.9, savedPath='mod
             'loss': criterion,
         }, savedPath)
 
-        lossList.append(sum(epochLoss) / len(epochLoss))
+        # store best model
+        if epoch % 10 == 0:
+            yhat = model(inputs) # evaluate the model on the test set
+            yhat = yhat.detach().numpy()
 
-        # TODO: save best data and draw
+            actual = targets.numpy() # extract the weights to ndarray instead of tensor
+            actual = actual.reshape((len(actual), 1))
+
+            yhat = yhat.round()
+
+            preds = [yhat]
+            actuals = [actual]
+            preds, actuals = vstack(preds), vstack(actuals)
+            cm = numpy.zeros((2, 2)) # define confusion matrix
+            for i in range(len(preds)):
+                cm[int(actuals[i][0]), int(preds[i][0])] += 1
+            accuracy = cm.diagonal().sum() / len(preds)
+
+            if accuracy >= bestVal:
+                bestModel = copy.deepcopy(model)
+                bestVal = accuracy
+
+                # torch.save(model, savedPath)
+                # save the best model
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': criterion,
+                }, savedPath)
+
+        lossList.append(sum(epochLoss) / len(epochLoss))
 
     timeDelta = time.time() - start
     print(f'Trainging complete in { timeDelta // 60 }, { timeDelta % 60 }s')
@@ -137,7 +168,7 @@ def savePlots(trainLoss):
     """
     Function to save the loss and accuracy plots to disk.
     """
-    print(trainLoss)
+    # print(trainLoss)
     plt.figure(figsize=(10, 7))
     plt.plot(
         trainLoss, color='orange', linestyle='-', 
@@ -218,12 +249,13 @@ def prepareDataset(path):
 plt.style.use('ggplot')
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# torch.manual_seed(10)
 
 trainDL, testDL = prepareDataset('https://raw.githubusercontent.com/StatsGary/Data/main/thyroid_raw.csv') # load data
 
 # train the model
 model = ThyroidMLP(26)
-trainModel(trainDL=trainDL, model=model, epochs=2000, lr=0.01)
+trainModel(trainDL=trainDL, model=model, epochs=1000, lr=1e-3)
 
 results = evaluateModel(testDL, model, beta=1)
 
